@@ -19,6 +19,7 @@
 #include "Led.h"
 #include "Moto.h"
 #include "time.h"
+#include "Eeprom.h"
 typedef struct DataNode
 {
     u8 mode;//模式
@@ -43,10 +44,27 @@ static tDataNode menu;
 * 日    期: 2016/4/15
 ************************************************************************************************************/ 
 void MenuInit(void) { 
-    menu.light_work_timr = 3600;
-    menu.light_stop_time = 3600;
+    menu.light_work_timr = 21600;//3600 16/8/30 客户要求改为6h
+    menu.light_stop_time = 7200;//3600 16/8/30 客户要求改为2h
     menu.water_work_time = 60;
-    menu.water_stop_time = 7200;
+    menu.water_stop_time = 300;//7200 16/8/26/客户要求改为5min
+    if(EepromRead(0x10) > 0x00) {
+        menu.light = 1;
+        menu.mode = 1;
+        TimeSetLightFlag(1);//clear
+        TimeSetWaterFlag(1);//clear
+        MotoWaterSet(1);
+        MotoTempSet(1);
+        LedSet(0);
+        EepromWrite(0x10,0x01);
+    } else {
+        menu.mode = 0;
+        //关闭一切
+        LedSet(1);
+        MotoTempSet(0);
+        MotoWaterSet(0);
+        EepromWrite(0x10,0x00);
+    }
 }
 /**********************************************函数定义***************************************************** 
 * 函数名称: void MenuSet(void) 
@@ -62,14 +80,21 @@ void MenuSet(u8 cmd) {
         break;
     case 0x01:
         if(menu.mode == 0) {
+            menu.light = 1;
             menu.mode = 1;
+            TimeSetLightFlag(1);//clear
+            TimeSetWaterFlag(1);//clear
+            MotoWaterSet(1);
+            MotoTempSet(1);
             LedSet(0);
+            EepromWrite(0x10,0x01);
         } else {
             menu.mode = 0;
             //关闭一切
             LedSet(1);
             MotoTempSet(0);
             MotoWaterSet(0);
+            EepromWrite(0x10,0x00);
         }
         break;
     case 0x02:
